@@ -32,10 +32,11 @@ echo "==> subindo $IMAGE"
 docker run -d --name "$CONTAINER" -e POSTGRES_PASSWORD=postgres "$IMAGE" >/dev/null
 
 for _ in $(seq 1 60); do
-  if docker exec "$CONTAINER" pg_isready -U postgres >/dev/null 2>&1; then break; fi
+  # O servidor temporário de init usa apenas socket e reinicia logo depois.
+  if docker exec "$CONTAINER" pg_isready -h 127.0.0.1 -U postgres >/dev/null 2>&1; then break; fi
   sleep 1
 done
-docker exec "$CONTAINER" pg_isready -U postgres >/dev/null
+docker exec "$CONTAINER" pg_isready -h 127.0.0.1 -U postgres >/dev/null
 
 psql_exec() { docker exec -i "$CONTAINER" psql -v ON_ERROR_STOP=1 -q -U postgres -d postgres; }
 
