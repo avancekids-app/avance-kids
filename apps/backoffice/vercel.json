@@ -1,4 +1,7 @@
 {
+  "redirects": [
+    { "source": "/:path*", "destination": "https://admin.avancekids.com/:path*", "permanent": false }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

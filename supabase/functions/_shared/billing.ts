@@ -15,7 +15,8 @@
 
 import { errorResponse } from "./response.ts";
 
-const returnPage = `${Deno.env.get("SUPABASE_URL")}/functions/v1/checkout-return`;
+const publicUrl = Deno.env.get("SUPABASE_PUBLIC_URL") ?? Deno.env.get("SUPABASE_URL");
+const returnPage = `${publicUrl}/functions/v1/checkout-return`;
 
 export const SUCCESS_URL = Deno.env.get("CHECKOUT_SUCCESS_URL") ?? `${returnPage}?status=sucesso`;
 export const CANCEL_URL = Deno.env.get("CHECKOUT_CANCEL_URL") ?? `${returnPage}?status=cancelado`;

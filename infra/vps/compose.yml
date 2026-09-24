@@ -1,0 +1,94 @@
+# Overlay for Supabase self-hosted/v0.8.2. All resources belong to Avance Kids.
+name: avancekids
+
+services:
+  db:
+    container_name: avancekids-db
+    ports:
+      - "127.0.0.1:15432:5432"
+    mem_limit: 1g
+    healthcheck:
+      start_period: 90s
+  auth:
+    container_name: avancekids-auth
+    mem_limit: 256m
+    env_file:
+      - /opt/avancekids/google.env
+  rest:
+    container_name: avancekids-rest
+    mem_limit: 256m
+  storage:
+    container_name: avancekids-storage
+    mem_limit: 512m
+  imgproxy:
+    container_name: avancekids-imgproxy
+    mem_limit: 256m
+  studio:
+    container_name: avancekids-studio
+    mem_limit: 512m
+  meta:
+    container_name: avancekids-meta
+    mem_limit: 256m
+  api-gw:
+    container_name: avancekids-api
+    ports: !override
+      - "127.0.0.1:18000:8000"
+    mem_limit: 256m
+  functions:
+    container_name: avancekids-functions
+    mem_limit: 768m
+    env_file:
+      - /opt/avancekids/functions.env
+    environment:
+      SUPABASE_PUBLIC_URL: https://api.avancekids.com
+    volumes:
+      - /opt/avancekids/apps/current/supabase/functions:/home/deno/functions:ro
+  realtime:
+    profiles: [optional]
+  supavisor:
+    profiles: [optional]
+    ports: !reset []
+
+  web:
+    image: nginx:1.28-alpine
+    container_name: avancekids-web
+    restart: unless-stopped
+    mem_limit: 128m
+    volumes:
+      - /opt/avancekids/infra/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - /opt/avancekids/apps:/srv/apps:ro
+    ports:
+      - "127.0.0.1:18080:80"
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1/healthz]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+  site:
+    image: node:22-alpine
+    container_name: avancekids-site
+    restart: unless-stopped
+    mem_limit: 384m
+    user: node
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: "3000"
+    volumes:
+      - /opt/avancekids/site:/srv/site:ro
+    working_dir: /srv/site/current
+    command: [node, .output/server/index.mjs]
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+  tunnel:
+    image: cloudflare/cloudflared:2026.9.3
+    container_name: avancekids-tunnel
+    restart: unless-stopped
+    mem_limit: 256m
+    command: [tunnel, --no-autoupdate, run, --token-file, /run/secrets/tunnel-token]
+    volumes:
+      - /opt/avancekids/tunnel-token:/run/secrets/tunnel-token:ro

@@ -1,0 +1,57 @@
+name: Deploy Avance Kids to VPS
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+concurrency:
+  group: avancekids-vps
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      EXPO_PUBLIC_SUPABASE_URL: https://api.avancekids.com
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+      VITE_SUPABASE_URL: https://api.avancekids.com
+      VITE_SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            apps/mobile/package-lock.json
+            apps/backoffice/package-lock.json
+      - name: Validate configuration
+        run: test -n "$EXPO_PUBLIC_SUPABASE_ANON_KEY"
+      - name: Install dependencies
+        run: |
+          npm ci --prefix apps/backoffice
+          npm ci --prefix apps/mobile
+      - name: Validate migrations on disposable PostgreSQL
+        run: |
+          bash scripts/validate_migrations.sh
+          bash scripts/validate_migrations.sh upgrade
+      - name: Build app and admin
+        run: |
+          npm run build --prefix apps/backoffice
+          npm run build --prefix apps/mobile
+      - name: Package and deploy (backup, migrations, then application)
+        env:
+          VPS_DEPLOY_KEY: ${{ secrets.VPS_DEPLOY_KEY }}
+          VPS_KNOWN_HOSTS: ${{ vars.VPS_KNOWN_HOSTS }}
+        run: |
+          test -n "$VPS_DEPLOY_KEY"
+          test -n "$VPS_KNOWN_HOSTS"
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_DEPLOY_KEY" > ~/.ssh/avancekids
+          chmod 600 ~/.ssh/avancekids
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          tar -czf release.tar.gz apps/mobile/dist apps/backoffice/dist supabase/config.toml supabase/migrations supabase/functions
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/avancekids root@82.25.70.72 "app $GITHUB_SHA" < release.tar.gz
