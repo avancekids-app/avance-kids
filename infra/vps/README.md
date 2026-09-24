@@ -116,6 +116,10 @@ por cima da produção sem uma janela de manutenção e uma cópia atual.
 
 Remetente: `Avance Kids <nao-responda@avancekids.com>`, SMTP Resend na porta 465,
 com chave de envio restrita a este domínio. O outro domínio da conta é independente.
+O modelo em português está em `supabase/templates/recovery.html`, com o logo em
+`supabase/templates/logo.png`. Ambos acompanham o deploy do app. Auth busca o HTML
+pelo Nginx interno; o logo tem endereço público estável em
+`https://app.avancekids.com/email-logo.png`. O assunto é definido no Compose.
 Google usa o cliente OAuth existente do projeto Avance Kids e o callback
 `https://api.avancekids.com/auth/v1/callback`.
 Stripe usa `/functions/v1/handle-stripe-webhook` no domínio da API. O retorno do

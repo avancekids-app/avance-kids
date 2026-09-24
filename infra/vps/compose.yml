@@ -14,6 +14,12 @@ services:
     mem_limit: 256m
     env_file:
       - /opt/avancekids/google.env
+    environment:
+      GOTRUE_MAILER_TEMPLATES_RECOVERY: http://web/email/recovery.html
+      GOTRUE_MAILER_SUBJECTS_RECOVERY: "Redefina sua senha — Avance Kids"
+    depends_on:
+      web:
+        condition: service_healthy
   rest:
     container_name: avancekids-rest
     mem_limit: 256m

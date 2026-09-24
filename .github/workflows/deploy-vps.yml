@@ -53,5 +53,5 @@ jobs:
           printf '%s\n' "$VPS_DEPLOY_KEY" | tr -d '\r' > ~/.ssh/avancekids
           chmod 600 ~/.ssh/avancekids
           printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
-          tar -czf release.tar.gz apps/mobile/dist apps/backoffice/dist supabase/config.toml supabase/migrations supabase/functions
+          tar -czf release.tar.gz apps/mobile/dist apps/backoffice/dist supabase/config.toml supabase/migrations supabase/functions supabase/templates
           ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -i ~/.ssh/avancekids root@82.25.70.72 "app $GITHUB_SHA" < release.tar.gz
