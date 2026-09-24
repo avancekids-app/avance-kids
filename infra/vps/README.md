@@ -6,7 +6,7 @@ Kids. A stack Nexo e seu Caddy não participam deste deploy.
 
 | Serviço | Endereço |
 | --- | --- |
-| Site (repositório `alisson-rr/avancekids`) | https://avancekids.com |
+| Site (repositório `avancekids-app/avancekids`) | https://avancekids.com |
 | App web | https://app.avancekids.com |
 | Painel | https://admin.avancekids.com |
 | Auth, REST, Storage e Functions | https://api.avancekids.com |

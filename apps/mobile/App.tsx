@@ -74,6 +74,7 @@ export default function App() {
       if (id) {
         void useTermsGate.getState().avaliar(id);
       } else {
+        setAbrirNovaSenha(false);
         useTermsGate.getState().limpar();
         void novaSenhaPendente.limpar().catch(() => {});
         // Perder a sessão no meio do bloqueio apenas escondia o gate e deixava
@@ -199,7 +200,8 @@ export default function App() {
         </Stack.Navigator>
       </NavigationContainer>
       <DialogHost />
-      <TermsGate />
+      {/* Recuperar a conta não exige um novo aceite; o gate volta após o logout. */}
+      {!abrirNovaSenha && <TermsGate />}
       <PwaInstallPrompt />
     </SafeAreaProvider>
   );

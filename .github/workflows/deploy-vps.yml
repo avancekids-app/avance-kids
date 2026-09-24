@@ -50,7 +50,7 @@ jobs:
           test -n "$VPS_DEPLOY_KEY"
           test -n "$VPS_KNOWN_HOSTS"
           install -m 700 -d ~/.ssh
-          printf '%s\n' "$VPS_DEPLOY_KEY" > ~/.ssh/avancekids
+          printf '%s\n' "$VPS_DEPLOY_KEY" | tr -d '\r' > ~/.ssh/avancekids
           chmod 600 ~/.ssh/avancekids
           printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
           tar -czf release.tar.gz apps/mobile/dist apps/backoffice/dist supabase/config.toml supabase/migrations supabase/functions
