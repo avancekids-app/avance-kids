@@ -73,6 +73,21 @@ Alterações em `compose.yml`, `nginx.conf` ou `deploy.sh` precisam ser copiadas
 explicitamente para `/opt/avancekids/infra` ou `/opt/avancekids/deploy.sh`.
 Valide com `docker compose ... config --quiet`, `nginx -t` e `bash -n`.
 Não use comandos que removam todos os containers, volumes ou redes da VPS.
+Na VPS, `postgres` precisa herdar `supabase_storage_admin` para migrations que
+configuram as policies de `storage.objects`. Preparação feita somente no banco
+Avance Kids, como administrador do container:
+
+```sh
+docker exec avancekids-db psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 \
+  -c 'GRANT supabase_storage_admin TO postgres WITH INHERIT TRUE, SET TRUE;'
+```
+
+O dump do CLI não inclui as policies do schema gerenciado `storage`. Depois de
+restaurar o histórico, a migration-24 recria as regras: catálogo legível por todos
+e gravável só por admins; avatares privados na pasta do usuário autenticado.
+Valide upload, sobrescrita e URL assinada com sessão de usuário, além da cópia dos
+arquivos com service role. A service role ignora RLS e sozinha não testa permissões.
+
 Ao preparar uma instalação nova, mantenha os arquivos de configuração montados
 legíveis pelos usuários dos containers (SQLs 644, diretórios 755). Os arquivos
 de segredos continuam 600 e `/opt/avancekids` continua 700.

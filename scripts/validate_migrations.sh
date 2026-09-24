@@ -98,6 +98,14 @@ for arquivo in "$RAIZ"/supabase/migrations/*.sql; do
     echo "    -- carga de banco em uso, antes da 09 --"
     psql_exec < "$RAIZ/scripts/seed_banco_existente.sql"
   fi
+  if [ "$MODO" = "upgrade" ] && [ "$base" = "20260924194000_migration-24_restaura_policies_storage.sql" ]; then
+    echo "    -- simula restore com histórico aplicado, mas sem policies de Storage --"
+    psql_exec <<'SQL'
+DROP POLICY "Public read media bucket" ON storage.objects;
+DROP POLICY "Admins manage media bucket" ON storage.objects;
+DROP POLICY "Users manage own avatar folder" ON storage.objects;
+SQL
+  fi
   printf '    %s ... ' "$base"
   psql_exec < "$arquivo"
   echo "ok"
@@ -348,6 +356,13 @@ BEGIN
 
   SELECT count(*) INTO v_int FROM storage.objects WHERE bucket_id = 'avatars';
   IF v_int <> 0 THEN RAISE EXCEPTION 'anon conseguiu ler avatars privados'; END IF;
+
+  BEGIN
+    INSERT INTO storage.objects (bucket_id, name)
+    VALUES ('avatars', '11111111-1111-1111-1111-111111111111/anon.jpg');
+    RAISE EXCEPTION 'anon conseguiu enviar avatar';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
 END $$;
 RESET ROLE;
 
@@ -362,12 +377,43 @@ BEGIN
   INSERT INTO storage.objects (bucket_id, name)
   VALUES ('avatars', '11111111-1111-1111-1111-111111111111/child-c.jpg');
 
+  -- O upload do app usa upsert: sobrescrever exige SELECT e UPDATE também.
+  UPDATE storage.objects SET name = name
+   WHERE bucket_id = 'avatars'
+     AND name = '11111111-1111-1111-1111-111111111111/child-c.jpg';
+  GET DIAGNOSTICS v_int = ROW_COUNT;
+  IF v_int <> 1 THEN RAISE EXCEPTION 'usuário não conseguiu atualizar o próprio avatar'; END IF;
+
+  UPDATE storage.objects SET name = name
+   WHERE bucket_id = 'avatars'
+     AND name = '22222222-2222-2222-2222-222222222222/child-b.jpg';
+  GET DIAGNOSTICS v_int = ROW_COUNT;
+  IF v_int <> 0 THEN RAISE EXCEPTION 'usuário atualizou avatar de outra conta'; END IF;
+
+  DELETE FROM storage.objects
+   WHERE bucket_id = 'avatars'
+     AND name = '22222222-2222-2222-2222-222222222222/child-b.jpg';
+  GET DIAGNOSTICS v_int = ROW_COUNT;
+  IF v_int <> 0 THEN RAISE EXCEPTION 'usuário removeu avatar de outra conta'; END IF;
+
   BEGIN
     INSERT INTO storage.objects (bucket_id, name)
     VALUES ('avatars', '22222222-2222-2222-2222-222222222222/invasao.jpg');
     RAISE EXCEPTION 'usuário gravou na pasta de avatars de outra conta';
   EXCEPTION WHEN insufficient_privilege THEN NULL;
   END;
+
+  BEGIN
+    INSERT INTO storage.objects (bucket_id, name) VALUES ('media', 'catalogo/invasao.jpg');
+    RAISE EXCEPTION 'usuário comum gravou no catálogo administrativo';
+  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  END;
+
+  DELETE FROM storage.objects
+   WHERE bucket_id = 'avatars'
+     AND name = '11111111-1111-1111-1111-111111111111/child-c.jpg';
+  GET DIAGNOSTICS v_int = ROW_COUNT;
+  IF v_int <> 1 THEN RAISE EXCEPTION 'usuário não conseguiu remover o próprio avatar'; END IF;
 END $$;
 RESET ROLE;
 SQL
