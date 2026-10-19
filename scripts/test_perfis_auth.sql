@@ -44,7 +44,16 @@ BEGIN
 END;
 $$;
 
+-- Na VPS a role de migrations pode ler Auth/criar triggers, mas não é dona
+-- de auth.users. Rodar como superuser esconderia uma exigência indevida de ALTER.
+CREATE ROLE cadastro_migration_test NOLOGIN BYPASSRLS;
+GRANT USAGE ON SCHEMA public, auth TO cadastro_migration_test;
+GRANT SELECT, TRIGGER ON auth.users TO cadastro_migration_test;
+GRANT SELECT, INSERT ON profiles, subscriptions TO cadastro_migration_test;
+GRANT SELECT ON account_deletions TO cadastro_migration_test;
+SET LOCAL ROLE cadastro_migration_test;
 \ir ../supabase/migrations/20261019120000_migration-25_restaura_perfis_auth.sql
+RESET ROLE;
 
 DO $$
 BEGIN
@@ -92,7 +101,9 @@ CREATE TEMP TABLE assinaturas_reparadas AS SELECT user_id, to_jsonb(s) AS dados 
 
 -- Também cobre trigger desativado e reaplicação sem duplicar/modificar dados.
 ALTER TABLE auth.users DISABLE TRIGGER on_auth_user_created;
+SET LOCAL ROLE cadastro_migration_test;
 \ir ../supabase/migrations/20261019120000_migration-25_restaura_perfis_auth.sql
+RESET ROLE;
 
 DO $$
 BEGIN

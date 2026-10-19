@@ -1,11 +1,11 @@
 -- O histórico das migrations pode estar aplicado sem o trigger de auth.users
 -- após uma restauração. Login funciona, mas children.user_id exige profiles.id.
 -- Reutiliza a regra vigente da migration-22 para os próximos cadastros.
+-- CREATE OR REPLACE também reativa o trigger; ALTER TABLE exigiria ser dono
+-- de auth.users, permissão que a role de migrations não tem no self-hosted.
 CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
-
-ALTER TABLE auth.users ENABLE TRIGGER on_auth_user_created;
 
 -- Recupera somente perfis ausentes, sem sobrescrever os dados já salvos.
 DO $$
