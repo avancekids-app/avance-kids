@@ -583,6 +583,10 @@ psql_exec < "$RAIZ/scripts/test_multi_tenant.sql"
 echo "==> testes das decisões da cliente (migration-11)"
 psql_exec < "$RAIZ/scripts/test_logica_cliente.sql"
 
+echo "==> cadastro de criança após recuperação de perfis Auth"
+docker cp "$RAIZ/supabase/migrations/20261019120000_migration-25_restaura_perfis_auth.sql" "$CONTAINER:/tmp/migration-25.sql"
+sed 's|\\ir ../supabase/migrations/20261019120000_migration-25_restaura_perfis_auth.sql|\\ir /tmp/migration-25.sql|' "$RAIZ/scripts/test_perfis_auth.sql" | psql_exec
+
 # Não depende do Postgres, mas fecha o par com os cenários SQL do gate: o banco
 # diz o que existe, este diz o que o app decide em cima disso.
 echo "==> cenários do gate de reaceite dos termos"
